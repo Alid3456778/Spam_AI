@@ -1,0 +1,49 @@
+{
+  "messages": [
+    {
+      "text": "are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "hi",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "hello",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    }
+  ]
+}
