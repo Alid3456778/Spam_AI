@@ -1,33 +1,35 @@
-name: MLOps Model Evaluation Pipeline
+name: MLOps Training & Evaluation Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 jobs:
-  evaluate-model:
+  mlops:
     runs-on: ubuntu-latest
 
     steps:
-      # 1️⃣ Checkout repository
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2️⃣ Setup Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3️⃣ Install dependencies
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install scikit-learn
 
-      # 4️⃣ Run model evaluation (GATE)
-      - name: Evaluate ML model
+      # 1️⃣ TRAINING (controlled learning)
+      - name: Run training pipeline
+        run: |
+          python train_pipeline.py
+
+      # 2️⃣ EVALUATION (QUALITY GATE)
+      - name: Evaluate model quality
         run: |
           python evaluate_model.py

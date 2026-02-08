@@ -134,6 +134,24 @@
         "spam": 0,
         "not_spam": 0
       }
+    },
+    {
+      "text": "Hi",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "hi",
+      "model_prediction": 0,
+      "confidence": 50.98,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
     }
   ]
 }

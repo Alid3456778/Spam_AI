@@ -91,11 +91,63 @@ def send_to_internal_review(message, prediction, confidence):
         "votes": {"spam": 0, "not_spam": 0}
     })
     save(INTERNAL_REVIEW, review)
+    
+
+def run_training_pipeline():
+    main = load(MAIN_DATA)
+    feedback = load(FEEDBACK_DATA)
+
+    learned = []
+    remaining = []
+
+    for item in feedback["messages"]:
+        if item["count"] >= 3.0:
+            main["messages"].append({
+                "text": item["text"],
+                "label": item["label"]
+            })
+            learned.append(item)
+        else:
+            remaining.append(item)
+
+    feedback["messages"] = remaining
+
+    save(MAIN_DATA, main)
+    save(FEEDBACK_DATA, feedback)
+
+    return learned, remaining
+
 
 # ---------------- UI ----------------
 
 st.set_page_config(page_title="Spam Detection AI", layout="centered")
 st.title("📨 Spam Detection AI")
+
+# -------- ADMIN ROUTE --------
+query_params = st.query_params
+is_admin = query_params.get("admin", "false") == "hihoware"
+
+# -------- ADMIN PANEL (HIDDEN ROUTE) --------
+if is_admin:
+    st.divider()
+    st.subheader("🔐 Admin Training Panel")
+
+    if st.button("🚀 Run Learning Pipeline"):
+        learned, remaining = run_training_pipeline()
+
+        st.success("Training pipeline executed")
+
+        st.write(f"✅ Learned samples added: {len(learned)}")
+        st.write(f"⏳ Remaining feedback: {len(remaining)}")
+
+        if learned:
+            st.write("### Newly Learned Messages")
+            for item in learned:
+                label = "SPAM" if item["label"] == 1 else "NOT SPAM"
+                st.write(f"- **{item['text']}** → {label}")
+        else:
+            st.info("No feedback met learning threshold")
+
 
 # Initialize session state
 if 'feedback_given' not in st.session_state:
@@ -157,10 +209,20 @@ if message:
             with col2:
                 if st.button("❌ NO - Wrong", use_container_width=True):
                     # User says prediction is wrong
+                    # trust = get_trust(user_id)
+                    # correct_label = 0 if prediction == 1 else 1
+                    # save_feedback(message, correct_label, trust)
+                    # update_trust(user_id, False)
                     trust = get_trust(user_id)
                     correct_label = 0 if prediction == 1 else 1
-                    save_feedback(message, correct_label, trust)
-                    update_trust(user_id, False)
+
+                    # ✅ CONFIDENCE-WEIGHTED LEARNING
+                    learning_weight = trust * (1 - confidence / 100)
+                    learning_weight = round(learning_weight, 3)
+
+                    save_feedback(message, correct_label, learning_weight)
+                    update_trust(user_id, True)
+
                     st.session_state.feedback_given = True
                     st.session_state.feedback_correct_label = correct_label
                     st.session_state.feedback_trust = trust
