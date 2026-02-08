@@ -44,6 +44,96 @@
         "spam": 0,
         "not_spam": 0
       }
+    },
+    {
+      "text": "sunbreathing13form@gmail.com",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "how are you",
+      "model_prediction": 1,
+      "confidence": 61.53,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "freeee",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Free I Phone",
+      "model_prediction": 1,
+      "confidence": 67.47,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "hi",
+      "model_prediction": 0,
+      "confidence": 50.0,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
+    },
+    {
+      "text": "Are you free tonight",
+      "model_prediction": 1,
+      "confidence": 68.95,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
     }
   ]
 }

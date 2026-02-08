@@ -13,7 +13,12 @@
     {
       "text": "are you free tonight",
       "label": 0,
-      "count": 1.8
+      "count": 4.9
+    },
+    {
+      "text": "How are you",
+      "label": 0,
+      "count": 1.0
     }
   ]
 }

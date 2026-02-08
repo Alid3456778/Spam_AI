@@ -171,13 +171,13 @@ def run():
     # 1️⃣ High confidence → auto accept
     if confidence >= AUTO_ACCEPT_CONFIDENCE:
         print("Auto-accepted (high confidence).")
-        # return
+        return
 
     # 2️⃣ Low confidence → internal review
     if confidence < REVIEW_THRESHOLD:
         print("Low confidence → sent to internal review.")
         send_to_internal_review(message, prediction, confidence)
-        # return
+        return
 
     # 3️⃣ Medium confidence → ask user
     answer = input("Is this correct? (Y/N): ").strip().upper()
