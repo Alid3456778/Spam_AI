@@ -1,0 +1,29 @@
+{
+  "current_version": 4,
+  "models": [
+    {
+      "version": 1,
+      "file": "model_v1.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-09T09:40:38.967709"
+    },
+    {
+      "version": 2,
+      "file": "model_v2.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-09T10:19:11.726096"
+    },
+    {
+      "version": 3,
+      "file": "model_v3.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-09T16:56:57.934265"
+    },
+    {
+      "version": 4,
+      "file": "model_v4.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-09T17:00:33.062783"
+    }
+  ]
+}

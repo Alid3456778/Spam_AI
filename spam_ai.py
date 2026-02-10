@@ -120,43 +120,6 @@ def nightly_retrain():
 
 # ---------------- MAIN RUN ----------------
 
-# def run():
-#     model, vectorizer = train_model()
-
-#     user_id = "user_demo"  # placeholder for auth/session
-#     message = input("Enter message: ")
-
-#     prediction, confidence = predict(model, vectorizer, message)
-
-#     label_text = "SPAM" if prediction == 1 else "NOT SPAM"
-#     print(f"{label_text} | Confidence: {confidence}%")
-
-#     # High confidence → auto accept
-#     if confidence >= AUTO_ACCEPT_CONFIDENCE:
-#         print("Auto-accepted (high confidence).")
-#         return
-
-#     # Low confidence → internal review
-#     if confidence < REVIEW_THRESHOLD:
-#         print("Low confidence → sent to internal review.")
-#         send_to_internal_review(message, prediction, confidence)
-#         return
-
-#     # Medium confidence → ask user
-#     answer = input("Is this correct? (Y/N): ").strip().upper()
-
-#     trust = get_trust(user_id)
-
-#     if answer == "N":
-#         correct_label = 0 if prediction == 1 else 1
-#         save_feedback(message, correct_label, trust)
-#         update_trust(user_id, True)
-#         print("Feedback recorded.")
-#     else:
-#         update_trust(user_id, False)
-#         print("Confirmed.")
-
-#     nightly_retrain()
 def run():
     model, vectorizer = train_model()
 

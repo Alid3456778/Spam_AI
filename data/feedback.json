@@ -13,7 +13,17 @@
     {
       "text": "How are you",
       "label": 0,
-      "count": 1.0
+      "count": 1.623
+    },
+    {
+      "text": "Give InstaGram Password",
+      "label": 1,
+      "count": 0.49
+    },
+    {
+      "text": "pasword",
+      "label": 1,
+      "count": 0.637
     }
   ]
 }

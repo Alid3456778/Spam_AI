@@ -1,78 +1,93 @@
 import streamlit as st
-import json
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
+import pickle
+import numpy as np
+import subprocess
+from ml.data_loader import load_json, save_json
+from ml.predict import predict_message
 
 # ---------------- CONFIG ----------------
 
+RECENT_LIMIT = 200
 DATA_DIR = "data/"
-MAIN_DATA = DATA_DIR + "main_data.json"
+MODEL_DIR = "models/"
+
 FEEDBACK_DATA = DATA_DIR + "feedback.json"
 INTERNAL_REVIEW = DATA_DIR + "internal_review.json"
 USER_TRUST = DATA_DIR + "user_trust.json"
+LATEST_MODEL = MODEL_DIR + "model_latest.pkl"
 
-# AUTO_ACCEPT_CONFIDENCE = 95
-# REVIEW_THRESHOLD = 40
 HIGH_CONFIDENCE = 90
 LOW_CONFIDENCE = 50
 
 
-# ---------------- UTIL ----------------
+# ---------------- HELPER ----------------
 
-def load(file):
-    with open(file, "r") as f:
-        return json.load(f)
+def log_confidence(confidence):
+    history = load_json("data/metrics_history.json")
+    history["history"].append({
+        "timestamp": datetime.utcnow().isoformat(),
+        "confidence": confidence
+    })
+    save_json("data/metrics_history.json", history)
+    
 
-def save(file, data):
-    with open(file, "w") as f:
-        json.dump(data, f, indent=2)
 
-# ---------------- MODEL ----------------
+def log_live_message(message, vectorizer):
+    stats = load_json("data/drift_live.json")
 
-@st.cache_resource
-def train_model():
-    data = load(MAIN_DATA)["messages"]
-    texts = [m["text"] for m in data]
-    labels = [m["label"] for m in data]
-
-    vectorizer = TfidfVectorizer()
-    X = vectorizer.fit_transform(texts)
-
-    model = MultinomialNB()
-    model.fit(X, labels)
-
-    return model, vectorizer
-
-def predict(model, vectorizer, message):
     X = vectorizer.transform([message])
-    probs = model.predict_proba(X)[0]
-    prediction = int(probs.argmax())
-    confidence = float(round(probs[prediction] * 100, 2))
-    return prediction, confidence
+    vec = np.asarray(X.todense()).ravel().tolist()
 
-# ---------------- FEEDBACK ----------------
+    stats.setdefault("vectors", []).append(vec)
+
+    # Keep last N messages only
+    stats["vectors"] = stats["vectors"][-RECENT_LIMIT:]
+
+    save_json("data/drift_live.json", stats)
+
+# ---------------- DATA DRIFT ----------------
+
+def check_drift(threshold=0.25):
+    import numpy as np
+
+    baseline = load_json("data/drift_stats.json")
+    live = load_json("data/drift_live.json")
+
+    if not live["vectors"]:
+        return None
+
+    baseline_mean = np.array(baseline["baseline_mean"])
+    live_mean = np.mean(np.array(live["vectors"]), axis=0)
+
+    # Cosine distance
+    similarity = np.dot(baseline_mean, live_mean) / (
+        np.linalg.norm(baseline_mean) * np.linalg.norm(live_mean)
+    )
+
+    drift_score = 1 - similarity
+    return round(float(drift_score), 3)
+
+
+# ---------------- TRUST & FEEDBACK ----------------
 
 def get_trust(user_id):
-    data = load(USER_TRUST)
+    data = load_json(USER_TRUST)
     return data["users"].get(user_id, 1.0)
 
-def update_trust(user_id, correct):
-    data = load(USER_TRUST)
+def update_trust(user_id):
+    data = load_json(USER_TRUST)
     trust = data["users"].get(user_id, 1.0)
-
-    trust += 0.1 if correct else -0.2
-    trust = min(max(trust, 0.2), 2.0)
-
+    trust = min(trust + 0.1, 2.0)
     data["users"][user_id] = round(trust, 2)
-    save(USER_TRUST, data)
+    save_json(USER_TRUST, data)
 
 def save_feedback(message, label, weight):
-    feedback = load(FEEDBACK_DATA)
+    feedback = load_json(FEEDBACK_DATA)
 
     for item in feedback["messages"]:
         if item["text"].lower() == message.lower() and item["label"] == label:
             item["count"] += weight
-            save(FEEDBACK_DATA, feedback)
+            save_json(FEEDBACK_DATA, feedback)
             return
 
     feedback["messages"].append({
@@ -80,43 +95,25 @@ def save_feedback(message, label, weight):
         "label": label,
         "count": weight
     })
-    save(FEEDBACK_DATA, feedback)
+    save_json(FEEDBACK_DATA, feedback)
 
 def send_to_internal_review(message, prediction, confidence):
-    review = load(INTERNAL_REVIEW)
+    review = load_json(INTERNAL_REVIEW)
     review["messages"].append({
         "text": message,
-        "model_prediction": prediction,
-        "confidence": confidence,
+        "model_prediction": int(prediction),
+        "confidence": float(confidence),
         "votes": {"spam": 0, "not_spam": 0}
     })
-    save(INTERNAL_REVIEW, review)
-    
+    save_json(INTERNAL_REVIEW, review)
 
-def run_training_pipeline():
-    main = load(MAIN_DATA)
-    feedback = load(FEEDBACK_DATA)
+# ---------------- LOAD APPROVED MODEL ----------------
 
-    learned = []
-    remaining = []
-
-    for item in feedback["messages"]:
-        if item["count"] >= 3.0:
-            main["messages"].append({
-                "text": item["text"],
-                "label": item["label"]
-            })
-            learned.append(item)
-        else:
-            remaining.append(item)
-
-    feedback["messages"] = remaining
-
-    save(MAIN_DATA, main)
-    save(FEEDBACK_DATA, feedback)
-
-    return learned, remaining
-
+@st.cache_resource
+def load_approved_model():
+    with open(LATEST_MODEL, "rb") as f:
+        obj = pickle.load(f)
+    return obj["model"], obj["vectorizer"]
 
 # ---------------- UI ----------------
 
@@ -124,117 +121,147 @@ st.set_page_config(page_title="Spam Detection AI", layout="centered")
 st.title("📨 Spam Detection AI")
 
 # -------- ADMIN ROUTE --------
-query_params = st.query_params
-is_admin = query_params.get("admin", "false") == "hihoware"
+is_admin = st.query_params.get("admin") == "true"
 
-# -------- ADMIN PANEL (HIDDEN ROUTE) --------
+if is_admin:
+    st.divider()
+    st.subheader("📊 Model Monitoring Dashboard")
+
+    history = load_json("data/metrics_history.json")["history"]
+
+    if history:
+        accuracy_data = [h["accuracy"] for h in history if "accuracy" in h]
+        confidence_data = [h["confidence"] for h in history if "confidence" in h]
+
+        if accuracy_data:
+            st.line_chart({
+                "Accuracy": accuracy_data
+            })
+
+        if confidence_data:
+            st.line_chart({
+                "Confidence": confidence_data
+            })
+    else:
+        st.info("No metrics recorded yet.")
+
+drift_score = check_drift()
+
+if drift_score is not None:
+    st.metric("📉 Data Drift Score", drift_score)
+
+    if drift_score > 0.3:
+        st.error("🚨 High data drift detected — retraining recommended")
+    elif drift_score > 0.15:
+        st.warning("⚠️ Moderate data drift detected")
+    else:
+        st.success("✅ Data distribution stable")
+
+
 if is_admin:
     st.divider()
     st.subheader("🔐 Admin Training Panel")
+    st.warning("⚠️ This runs on the SERVER using real user data")
 
-    if st.button("🚀 Run Learning Pipeline"):
-        learned, remaining = run_training_pipeline()
+    col1, col2 = st.columns(2)
 
-        st.success("Training pipeline executed")
+    # 1️⃣ TRAIN (merge feedback → main_data)
+    with col1:
+        if st.button("🔁 Run Training Pipeline", use_container_width=True):
+            with st.spinner("Running training pipeline on server..."):
+                result = subprocess.run(
+                    ["python", "train_pipeline.py"],
+                    capture_output=True,
+                    text=True
+                )
 
-        st.write(f"✅ Learned samples added: {len(learned)}")
-        st.write(f"⏳ Remaining feedback: {len(remaining)}")
+            if result.returncode == 0:
+                st.success("Training pipeline completed")
+                st.code(result.stdout)
+            else:
+                st.error("Training pipeline failed")
+                st.code(result.stderr)
 
-        if learned:
-            st.write("### Newly Learned Messages")
-            for item in learned:
-                label = "SPAM" if item["label"] == 1 else "NOT SPAM"
-                st.write(f"- **{item['text']}** → {label}")
-        else:
-            st.info("No feedback met learning threshold")
+    # 2️⃣ EVALUATE + VERSION
+    with col2:
+        if st.button("🧪 Evaluate & Approve Model", use_container_width=True):
+            with st.spinner("Evaluating model quality gate..."):
+                result = subprocess.run(
+                    ["python", "evaluate_model.py"],
+                    capture_output=True,
+                    text=True
+                )
+
+            if result.returncode == 0:
+                st.success("✅ Model approved & deployed")
+                st.code(result.stdout)
+            else:
+                st.error("❌ Model rejected (rollback active)")
+                st.code(result.stdout)
 
 
-# Initialize session state
-if 'feedback_given' not in st.session_state:
-    st.session_state.feedback_given = False
-if 'last_message' not in st.session_state:
-    st.session_state.last_message = ""
+# Session state
+st.session_state.setdefault("feedback_given", False)
+st.session_state.setdefault("last_message", "")
 
 user_id = "ui_user"
-
-message = st.text_input("Enter a message", key="message_input")
+message = st.text_input("Enter a message")
 
 if message:
-    # Reset feedback state if message changed
     if st.session_state.last_message != message:
         st.session_state.feedback_given = False
         st.session_state.last_message = message
-    
-    model, vectorizer = train_model()
-    prediction, confidence = predict(model, vectorizer, message)
+
+    model, vectorizer = load_approved_model()
+    prediction, confidence = predict_message(model, vectorizer, message)
+    log_confidence(confidence)
+    log_live_message(message, vectorizer)
+
+
 
     label = "🚨 SPAM" if prediction == 1 else "✅ NOT SPAM"
     st.subheader(label)
     st.write(f"**Confidence:** {confidence}%")
 
-    # # High confidence
-    # if confidence >= AUTO_ACCEPT_CONFIDENCE:
-    #     st.success("Auto-accepted (high confidence)")
-    
-    # # Low confidence
-    # elif confidence < REVIEW_THRESHOLD:
-    #     send_to_internal_review(message, prediction, confidence)
-    #     st.warning("Low confidence — sent for internal review")
     # -------- CONFIDENCE BUCKETS --------
 
+    allow_feedback = False
+
     if confidence >= HIGH_CONFIDENCE:
-        st.success("Auto-accepted (very high confidence)")
-        # return
+        st.success("Auto-accepted (high confidence)")
 
     elif confidence < LOW_CONFIDENCE:
         send_to_internal_review(message, prediction, confidence)
         st.warning("Low confidence — sent for internal review")
-
-        # Allow optional user feedback
         allow_feedback = True
 
-    # Medium confidence → user feedback
     else:
-        if not st.session_state.feedback_given:
-            st.info("Please confirm if this prediction is correct:")
-            col1, col2 = st.columns(2)
+        allow_feedback = True
 
-            with col1:
-                if st.button("✅ YES - Correct", use_container_width=True):
-                    # User confirms prediction is correct
-                    update_trust(user_id, True)
-                    st.session_state.feedback_given = True
-                    st.rerun()
+    # -------- FEEDBACK --------
 
-            with col2:
-                if st.button("❌ NO - Wrong", use_container_width=True):
-                    # User says prediction is wrong
-                    # trust = get_trust(user_id)
-                    # correct_label = 0 if prediction == 1 else 1
-                    # save_feedback(message, correct_label, trust)
-                    # update_trust(user_id, False)
-                    trust = get_trust(user_id)
-                    correct_label = 0 if prediction == 1 else 1
+    if allow_feedback and not st.session_state.feedback_given:
+        st.info("Is this prediction correct?")
+        col1, col2 = st.columns(2)
 
-                    # ✅ CONFIDENCE-WEIGHTED LEARNING
-                    learning_weight = trust * (1 - confidence / 100)
-                    learning_weight = round(learning_weight, 3)
+        with col1:
+            if st.button("✅ YES"):
+                update_trust(user_id)
+                st.session_state.feedback_given = True
+                st.success("Thanks for confirming 👍")
+                st.rerun()
 
-                    save_feedback(message, correct_label, learning_weight)
-                    update_trust(user_id, True)
+        with col2:
+            if st.button("❌ NO"):
+                trust = get_trust(user_id)
+                correct_label = 0 if prediction == 1 else 1
 
-                    st.session_state.feedback_given = True
-                    st.session_state.feedback_correct_label = correct_label
-                    st.session_state.feedback_trust = trust
-                    st.rerun()
-        else:
-            # Show feedback result after button click
-            if hasattr(st.session_state, 'feedback_correct_label'):
-                # User said NO
-                correct_text = "NOT SPAM" if st.session_state.feedback_correct_label == 0 else "SPAM"
-                st.success(f"✅ Feedback recorded! Correct label: {correct_text} 🧠")
-                st.info(f"Your feedback (weighted by trust: {st.session_state.feedback_trust:.2f}) will help improve the model.")
-            else:
-                # User said YES
-                st.success("✅ Thanks for confirming! Your trust score increased. 👍")
-                st.balloons()
+                learning_weight = trust * (1 - confidence / 100)
+                learning_weight = round(learning_weight, 3)
+
+                save_feedback(message, correct_label, learning_weight)
+                update_trust(user_id)
+
+                st.session_state.feedback_given = True
+                st.success("Feedback recorded 🧠")
+                st.rerun()

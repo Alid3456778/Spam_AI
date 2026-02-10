@@ -1,29 +1,23 @@
-import json
+from ml.data_loader import load_json, save_json
 
 DATA_DIR = "data/"
 MAIN_DATA = DATA_DIR + "main_data.json"
 FEEDBACK_DATA = DATA_DIR + "feedback.json"
 
-MIN_CONFIRMATIONS = 3.0  # weighted threshold
+# Minimum weighted feedback required to learn
+MIN_CONFIRMATIONS = 3.0
 
-def load(file):
-    with open(file, "r") as f:
-        return json.load(f)
-
-def save(file, data):
-    with open(file, "w") as f:
-        json.dump(data, f, indent=2)
 
 def run_training_pipeline():
-    main = load(MAIN_DATA)
-    feedback = load(FEEDBACK_DATA)
+    main_data = load_json(MAIN_DATA)
+    feedback_data = load_json(FEEDBACK_DATA)
 
     learned = []
     remaining = []
 
-    for item in feedback["messages"]:
+    for item in feedback_data["messages"]:
         if item["count"] >= MIN_CONFIRMATIONS:
-            main["messages"].append({
+            main_data["messages"].append({
                 "text": item["text"],
                 "label": item["label"]
             })
@@ -31,22 +25,24 @@ def run_training_pipeline():
         else:
             remaining.append(item)
 
-    feedback["messages"] = remaining
+    feedback_data["messages"] = remaining
 
-    save(MAIN_DATA, main)
-    save(FEEDBACK_DATA, feedback)
+    save_json(MAIN_DATA, main_data)
+    save_json(FEEDBACK_DATA, feedback_data)
 
-    # Report
-    print("=== TRAINING PIPELINE REPORT ===")
-    print(f"Learned samples added: {len(learned)}")
-    print(f"Remaining feedback: {len(remaining)}")
+    # ---- REPORT ----
+    print("=== TRAIN PIPELINE REPORT ===")
+    print(f"New samples learned : {len(learned)}")
+    print(f"Pending feedback    : {len(remaining)}")
 
     if learned:
-        print("\nNewly learned messages:")
-        for l in learned:
-            print(f"- {l['text']} → label={l['label']}")
+        print("\nLearned messages:")
+        for m in learned:
+            label = "SPAM" if m["label"] == 1 else "NOT SPAM"
+            print(f"- {m['text']} → {label}")
     else:
-        print("\nNo new data met learning threshold.")
+        print("\nNo feedback met learning threshold.")
+
 
 if __name__ == "__main__":
     run_training_pipeline()
