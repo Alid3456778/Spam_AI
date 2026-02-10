@@ -267,27 +267,25 @@ if message:
     # -------- FEEDBACK --------
 
     if allow_feedback and not st.session_state.feedback_given:
-        st.info("Is this prediction correct?")
+        # st.info("Is this prediction correct?")
+        st.info("Select the correct label:")
         col1, col2 = st.columns(2)
 
         with col1:
-            if st.button("✅ YES"):
+            if st.button("🚨 This is SPAM"):
+                trust = get_trust(user_id)
+                save_feedback(message, 1, trust)
                 update_trust(user_id)
                 st.session_state.feedback_given = True
-                st.success("Thanks for confirming 👍")
+                st.success("Saved as SPAM 🧠")
                 st.rerun()
 
         with col2:
-            if st.button("❌ NO"):
+            if st.button("✅ This is NOT SPAM"):
                 trust = get_trust(user_id)
-                correct_label = 0 if prediction == 1 else 1
-
-                learning_weight = trust * (1 - confidence / 100)
-                learning_weight = round(learning_weight, 3)
-
-                save_feedback(message, correct_label, learning_weight)
+                save_feedback(message, 0, trust)
                 update_trust(user_id)
-
                 st.session_state.feedback_given = True
-                st.success("Feedback recorded 🧠")
+                st.success("Saved as NOT SPAM 🧠")
                 st.rerun()
+
