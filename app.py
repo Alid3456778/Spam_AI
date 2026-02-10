@@ -2,6 +2,7 @@ import streamlit as st
 import pickle
 import numpy as np
 import subprocess
+from datetime import datetime, timezone
 from ml.data_loader import load_json, save_json
 from ml.predict import predict_message
 
@@ -25,7 +26,7 @@ LOW_CONFIDENCE = 50
 def log_confidence(confidence):
     history = load_json("data/metrics_history.json")
     history["history"].append({
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "confidence": confidence
     })
     save_json("data/metrics_history.json", history)
