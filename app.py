@@ -111,10 +111,19 @@ def send_to_internal_review(message, prediction, confidence):
 # ---------------- LOAD APPROVED MODEL ----------------
 
 @st.cache_resource
-def load_approved_model():
-    with open(LATEST_MODEL, "rb") as f:
-        obj = pickle.load(f)
-    return obj["model"], obj["vectorizer"]
+# def load_approved_model():
+#     with open(LATEST_MODEL, "rb") as f:
+#         obj = pickle.load(f)
+#     return obj["model"], obj["vectorizer"]
+def get_model():
+    if "model" not in st.session_state:
+        with open(LATEST_MODEL, "rb") as f:
+            obj = pickle.load(f)
+        st.session_state.model = obj["model"]
+        st.session_state.vectorizer = obj["vectorizer"]
+
+    return st.session_state.model, st.session_state.vectorizer
+
 
 # ---------------- UI ----------------
 
@@ -146,17 +155,31 @@ if is_admin:
     else:
         st.info("No metrics recorded yet.")
 
-drift_score = check_drift()
+# drift_score = check_drift()
 
-if drift_score is not None:
-    st.metric("📉 Data Drift Score", drift_score)
+# if drift_score is not None:
+#     st.metric("📉 Data Drift Score", drift_score)
 
-    if drift_score > 0.3:
-        st.error("🚨 High data drift detected — retraining recommended")
-    elif drift_score > 0.15:
-        st.warning("⚠️ Moderate data drift detected")
-    else:
-        st.success("✅ Data distribution stable")
+#     if drift_score > 0.3:
+#         st.error("🚨 High data drift detected — retraining recommended")
+#     elif drift_score > 0.15:
+#         st.warning("⚠️ Moderate data drift detected")
+#     else:
+#         st.success("✅ Data distribution stable")
+if is_admin:
+    st.subheader("📉 Data Drift Monitoring")
+    drift_score = check_drift()
+
+    if drift_score is not None:
+        st.metric("Drift Score", drift_score)
+
+        if drift_score > 0.3:
+            st.error("🚨 High drift detected — retraining recommended")
+        elif drift_score > 0.15:
+            st.warning("⚠️ Moderate drift detected")
+        else:
+            st.success("✅ Data distribution stable")
+
 
 
 if is_admin:
@@ -213,10 +236,12 @@ if message:
         st.session_state.feedback_given = False
         st.session_state.last_message = message
 
-    model, vectorizer = load_approved_model()
+    # model, vectorizer = load_approved_model()
+    model, vectorizer = get_model()
+
     prediction, confidence = predict_message(model, vectorizer, message)
     log_confidence(confidence)
-    log_live_message(message, vectorizer)
+    # log_live_message(message, vectorizer)
 
 
 
