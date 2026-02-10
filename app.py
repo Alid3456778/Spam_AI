@@ -33,20 +33,63 @@ def log_confidence(confidence):
     
 
 
+# def log_live_message(message, vectorizer):
+#     stats = load_json("data/drift_live.json")
+
+#     X = vectorizer.transform([message])
+#     vec = np.asarray(X.todense()).ravel().tolist()
+
+#     stats.setdefault("vectors", []).append(vec)
+
+#     # Keep last N messages only
+#     stats["vectors"] = stats["vectors"][-RECENT_LIMIT:]
+
+#     save_json("data/drift_live.json", stats)
+
 def log_live_message(message, vectorizer):
     stats = load_json("data/drift_live.json")
 
     X = vectorizer.transform([message])
-    vec = np.asarray(X.todense()).ravel().tolist()
+    vec = np.asarray(X.todense()).ravel()
 
-    stats.setdefault("vectors", []).append(vec)
+    # Initialize store
+    stats.setdefault("vectors", [])
+
+    # Safety: only store vectors of same size
+    if stats["vectors"]:
+        if len(stats["vectors"][0]) != len(vec):
+            # Old vectors are incompatible → reset
+            stats["vectors"] = []
+
+    stats["vectors"].append(vec.tolist())
 
     # Keep last N messages only
     stats["vectors"] = stats["vectors"][-RECENT_LIMIT:]
 
     save_json("data/drift_live.json", stats)
 
+
 # ---------------- DATA DRIFT ----------------
+
+# def check_drift(threshold=0.25):
+#     import numpy as np
+
+#     baseline = load_json("data/drift_stats.json")
+#     live = load_json("data/drift_live.json")
+
+#     if not live["vectors"]:
+#         return None
+
+#     baseline_mean = np.array(baseline["baseline_mean"])
+#     live_mean = np.mean(np.array(live["vectors"]), axis=0)
+
+#     # Cosine distance
+#     similarity = np.dot(baseline_mean, live_mean) / (
+#         np.linalg.norm(baseline_mean) * np.linalg.norm(live_mean)
+#     )
+
+#     drift_score = 1 - similarity
+#     return round(float(drift_score), 3)
 
 def check_drift(threshold=0.25):
     import numpy as np
@@ -54,13 +97,24 @@ def check_drift(threshold=0.25):
     baseline = load_json("data/drift_stats.json")
     live = load_json("data/drift_live.json")
 
-    if not live["vectors"]:
+    if not baseline or "baseline_mean" not in baseline:
+        return None
+
+    if not live.get("vectors"):
         return None
 
     baseline_mean = np.array(baseline["baseline_mean"])
-    live_mean = np.mean(np.array(live["vectors"]), axis=0)
+    baseline_dim = baseline_mean.shape[0]
 
-    # Cosine distance
+    live_vectors = np.array(live["vectors"])
+
+    # 🚨 SAFETY GUARD — vocab mismatch
+    if live_vectors.ndim != 2 or live_vectors.shape[1] != baseline_dim:
+        # Old live data → invalidate drift
+        return 1.0
+
+    live_mean = live_vectors.mean(axis=0)
+
     similarity = np.dot(baseline_mean, live_mean) / (
         np.linalg.norm(baseline_mean) * np.linalg.norm(live_mean)
     )
@@ -169,6 +223,12 @@ if is_admin:
 if is_admin:
     st.subheader("📉 Data Drift Monitoring")
     drift_score = check_drift()
+    # Collect drift data from real users (background)
+    try:
+        log_live_message(message, vectorizer)
+    except Exception:
+        pass  # Drift must NEVER crash user flow
+
 
     if drift_score is not None:
         st.metric("Drift Score", drift_score)
@@ -179,7 +239,6 @@ if is_admin:
             st.warning("⚠️ Moderate drift detected")
         else:
             st.success("✅ Data distribution stable")
-
 
 
 if is_admin:

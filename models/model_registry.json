@@ -1,5 +1,5 @@
 {
-  "current_version": 7,
+  "current_version": 8,
   "models": [
     {
       "version": 1,
@@ -42,6 +42,17 @@
       "file": "model_v7.pkl",
       "accuracy": 1.0,
       "approved_at": "2026-02-10T12:38:55.876347+00:00"
+    },
+    {
+      "version": 8,
+      "file": "model_v8.pkl",
+      "metrics": {
+        "accuracy": 1.0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "approved_at": "2026-02-10T16:23:59.182881+00:00"
     }
   ]
 }
