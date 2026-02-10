@@ -1,77 +1,72 @@
 import re
+import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.ensemble import VotingClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import FeatureUnion
+from sklearn.base import BaseEstimator, TransformerMixin
 
 
-class TextPreprocessor:
-    """Text preprocessing for spam detection"""
+# ---------------------------
+# Custom feature extractor
+# ---------------------------
+class MessageBehaviorFeatures(BaseEstimator, TransformerMixin):
+    """
+    Extracts simple sentence-level intent signals
+    """
 
-    @staticmethod
-    def preprocess(text: str) -> str:
-        # Lowercase
-        text = text.lower()
+    def fit(self, X, y=None):
+        return self
 
-        # Normalize whitespace
-        text = re.sub(r"\s+", " ", text).strip()
+    def transform(self, X):
+        features = []
 
-        # Intentionally keep:
-        # - URLs
-        # - numbers
-        # - symbols
-        # (they are spam indicators)
+        for text in X:
+            text_lower = text.lower()
 
-        return text
+            features.append([
+                int(bool(re.search(r"\bfree\b|\bwin\b|\boffer\b|\bclaim\b", text_lower))),  # offer
+                int(bool(re.search(r"\bnow\b|\burgent\b|\blimited\b|\bhurry\b", text_lower))),  # urgency
+                int("?" in text_lower),  # question
+                len(text.split()),  # message length
+            ])
+
+        return np.array(features)
 
 
+# ---------------------------
+# Training function
+# ---------------------------
 def train_model(messages):
-    """
-    Train a probability-capable ensemble spam classifier.
-
-    Args:
-        messages: list of { "text": str, "label": int }
-
-    Returns:
-        model: sklearn-compatible classifier (supports predict_proba)
-        vectorizer: fitted TfidfVectorizer
-    """
-
-    # Extract data
     texts = [m["text"] for m in messages]
     labels = [m["label"] for m in messages]
 
-    # Preprocess
-    texts = [TextPreprocessor.preprocess(t) for t in texts]
-
-    # TF-IDF tuned for spam
-    vectorizer = TfidfVectorizer(
+    # Text features (context via n-grams)
+    text_vectorizer = TfidfVectorizer(
         ngram_range=(1, 2),
-        max_features=1500,
+        max_features=2000,
         max_df=0.85,
-        min_df=1,
-        sublinear_tf=True,
-        lowercase=False,  # already handled
-        stop_words=None
+        sublinear_tf=True
     )
 
-    X = vectorizer.fit_transform(texts)
+    # Combine text meaning + behavior signals
+    combined_features = FeatureUnion([
+        ("tfidf", text_vectorizer),
+        ("behavior", MessageBehaviorFeatures())
+    ])
 
-    # Probability-capable ensemble (IMPORTANT)
+    X = combined_features.fit_transform(texts)
+
+    # Probability-capable ensemble
     model = VotingClassifier(
         estimators=[
             ("nb", MultinomialNB(alpha=0.1)),
-            ("lr", LogisticRegression(
-                C=1.0,
-                max_iter=1000,
-                solver="liblinear",
-                random_state=42
-            ))
+            ("lr", LogisticRegression(max_iter=1000))
         ],
-        voting="soft",  # ✅ REQUIRED for confidence
-        n_jobs=-1
+        voting="soft"
     )
 
     model.fit(X, labels)
 
-    return model, vectorizer
+    return model, combined_features

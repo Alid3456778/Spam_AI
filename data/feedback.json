@@ -34,6 +34,11 @@
       "text": "cripto is currency",
       "label": 1,
       "count": 2.0
+    },
+    {
+      "text": "I could buy you some good thing ?",
+      "label": 0,
+      "count": 2.0
     }
   ]
 }

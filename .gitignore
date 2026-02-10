@@ -1,6 +1,6 @@
-./data
+# ./data
 ./models
-data/
+# data/
 models/
 __pycache__/
 *.pyc

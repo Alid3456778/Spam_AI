@@ -1,5 +1,5 @@
 {
-  "current_version": 4,
+  "current_version": 7,
   "models": [
     {
       "version": 1,
@@ -24,6 +24,24 @@
       "file": "model_v4.pkl",
       "accuracy": 1.0,
       "approved_at": "2026-02-09T17:00:33.062783"
+    },
+    {
+      "version": 5,
+      "file": "model_v5.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-10T12:30:18.378905"
+    },
+    {
+      "version": 6,
+      "file": "model_v6.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-10T12:35:55.253339+00:00"
+    },
+    {
+      "version": 7,
+      "file": "model_v7.pkl",
+      "accuracy": 1.0,
+      "approved_at": "2026-02-10T12:38:55.876347+00:00"
     }
   ]
 }

@@ -203,6 +203,39 @@
     {
       "text": "are you free tonight",
       "label": 0
-    }
+    },
+    { "text": "Win a free iPhone now, limited time offer", "label": 1 },
+    { "text": "Congratulations! You have won a prize, claim now", "label": 1 },
+    { "text": "Get cashback on your purchase, buy now", "label": 1 },
+    { "text": "Exclusive offer just for you, act fast", "label": 1 },
+    { "text": "Free recharge available, click to claim", "label": 1 },
+    { "text": "Your account is selected for a free reward", "label": 1 },
+    { "text": "Limited time deal, buy one get one free", "label": 1 },
+    { "text": "You are the lucky winner of today’s giveaway", "label": 1 },
+    { "text": "Urgent: verify your account to receive bonus", "label": 1 },
+    { "text": "Claim your crypto airdrop now", "label": 1 },
+
+    { "text": "Are you free tonight?", "label": 0 },
+    { "text": "Are you free tonight, we can buy an ice cream", "label": 0 },
+    { "text": "Let me know if you are free tomorrow", "label": 0 },
+    { "text": "Do you want to buy groceries later?", "label": 0 },
+    { "text": "I will buy the tickets for the movie", "label": 0 },
+    { "text": "Can we meet after work?", "label": 0 },
+    { "text": "Are you coming to the party tonight?", "label": 0 },
+    { "text": "Let’s go out for dinner if you are free", "label": 0 },
+    { "text": "Please buy milk on your way home", "label": 0 },
+    { "text": "We can plan a trip this weekend", "label": 0 },
+
+    { "text": "Free course available for students only", "label": 1 },
+    { "text": "Buy now and get free shipping", "label": 1 },
+    { "text": "Special discount for limited users", "label": 1 },
+    { "text": "Win cash instantly by signing up", "label": 1 },
+    { "text": "Hurry up, offer expires today", "label": 1 },
+
+    { "text": "I am free after 6 pm, let me know", "label": 0 },
+    { "text": "Should we buy snacks for the trip?", "label": 0 },
+    { "text": "Are you free to join the meeting?", "label": 0 },
+    { "text": "I can buy the book you wanted", "label": 0 },
+    { "text": "Let’s have ice cream after dinner", "label": 0 }
   ]
 }
