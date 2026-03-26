@@ -152,6 +152,15 @@
         "spam": 0,
         "not_spam": 0
       }
+    },
+    {
+      "text": "Hi",
+      "model_prediction": 0,
+      "confidence": 50.62,
+      "votes": {
+        "spam": 0,
+        "not_spam": 0
+      }
     }
   ]
 }

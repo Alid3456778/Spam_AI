@@ -5,6 +5,10 @@ import subprocess
 from datetime import datetime, timezone
 from ml.data_loader import load_json, save_json
 from ml.predict import predict_message
+import os
+import threading
+import time
+import requests
 
 # ---------------- CONFIG ----------------
 
@@ -20,6 +24,30 @@ LATEST_MODEL = MODEL_DIR + "model_latest.pkl"
 HIGH_CONFIDENCE = 90
 LOW_CONFIDENCE = 50
 
+from dotenv import load_dotenv
+load_dotenv()
+
+def start_keep_alive():
+    url = os.getenv("RENDER_EXTERNAL_URL")
+
+    if not url:
+        print("[KeepAlive] No URL found in .env")
+        return
+
+    full_url = url + "/"
+
+    def ping():
+        while True:
+            try:
+                res = requests.get(full_url)
+                print(f"[KeepAlive] Ping: {res.status_code}")
+            except Exception as e:
+                print("[KeepAlive Error]", e)
+
+            time.sleep(600)  # 10 minutes
+
+    thread = threading.Thread(target=ping, daemon=True)
+    thread.start()
 
 # ---------------- HELPER ----------------
 
@@ -182,7 +210,9 @@ def get_model():
 # ---------------- UI ----------------
 
 st.set_page_config(page_title="Spam Detection AI", layout="centered")
+start_keep_alive()
 st.title("📨 Spam Detection AI")
+
 
 # -------- ADMIN ROUTE --------
 is_admin = st.query_params.get("admin") == "true"
