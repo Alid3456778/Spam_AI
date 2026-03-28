@@ -28,26 +28,58 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def start_keep_alive():
+    """
+    Keeps Render.com server alive by pinging it every 4 minutes.
+    Render shuts down inactive services, so this prevents that.
+    """
     url = os.getenv("RENDER_EXTERNAL_URL")
 
     if not url:
-        print("[KeepAlive] No URL found in .env")
+        print("[KeepAlive] ❌ RENDER_EXTERNAL_URL not found in .env")
+        print("[KeepAlive] Add this to your .env file:")
+        print("[KeepAlive] RENDER_EXTERNAL_URL=https://spam-ai-golh.onrender.com/")
         return
 
-    full_url = url + "/"
+    full_url = url.rstrip("/") + "/"
+    print(f"[KeepAlive] ✅ Starting keep-alive for: {full_url}")
 
     def ping():
+        """Background ping loop - runs every 4 minutes"""
+        consecutive_failures = 0
+        max_failures = 5
+        
         while True:
             try:
-                res = requests.get(full_url)
-                print(f"[KeepAlive] Ping: {res.status_code}")
+                # Use HEAD request instead of GET (lighter)
+                response = requests.head(full_url, timeout=10)
+                print(f"[KeepAlive] ✅ Ping successful - Status: {response.status_code} - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')}")
+                consecutive_failures = 0
+                
+            except requests.Timeout:
+                consecutive_failures += 1
+                print(f"[KeepAlive] ⏱️ Timeout (attempt {consecutive_failures}/{max_failures})")
+                
+            except requests.ConnectionError as e:
+                consecutive_failures += 1
+                print(f"[KeepAlive] ❌ Connection error (attempt {consecutive_failures}/{max_failures}): {str(e)}")
+                
             except Exception as e:
-                print("[KeepAlive Error]", e)
+                consecutive_failures += 1
+                print(f"[KeepAlive] ❌ Unexpected error (attempt {consecutive_failures}/{max_failures}): {str(e)}")
 
-            time.sleep(600)  # 10 minutes
+            # If too many failures, try to recover
+            if consecutive_failures >= max_failures:
+                print(f"[KeepAlive] ⚠️ Warning: {consecutive_failures} consecutive failures. Will keep retrying...")
+                consecutive_failures = max_failures - 1  # Cap for logging
 
-    thread = threading.Thread(target=ping, daemon=True)
+            # Sleep for 4 minutes (240 seconds) - safe interval for Render
+            time.sleep(240)
+
+    # Create and start daemon thread
+    thread = threading.Thread(target=ping, daemon=True, name="RenderKeepAlive")
     thread.start()
+    print(f"[KeepAlive] 🧵 Keep-alive thread started (will ping every 4 minutes)")
+
 
 # ---------------- HELPER ----------------
 
